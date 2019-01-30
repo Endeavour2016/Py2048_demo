@@ -2,8 +2,6 @@
 # @Time    : 2018/12/31 14:31
 # @Author  : ZLM
 # @FileName: GameBoard.py
-# GameBoard:游戏交互主面板(board面板 + Score QLabel + Button + ...)
-# 改类重写了QWidget的keyPressEvent函数，用于响应用户按键输入
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -12,6 +10,7 @@ from board import Board, Direction
 from qblock import Qblock
 
 
+# GameBoard: 游戏主界面类(board面板 + Score QLabel + Button)
 class GameBoard(QWidget):
     def __init__(self, parent=None):
         super(GameBoard, self).__init__(parent)
@@ -19,49 +18,13 @@ class GameBoard(QWidget):
         self._game_over = False
         self._game_win = False
         self.record = 0
-
         # create the board with 4*4 blocks
         self.board = Board(4)
-        # qBlockBoard用于存放 Qblock 方块对象
+        # qBlockBoard 用于存放 Qblock 方块对象
         self.qBlockBoard = [[None] * self.board.get_dimension for i in range(self.board.get_dimension)]
 
-        # Overall size
-        self.resize(650, 450)
-        # 整体布局控件
-        self.mainLayout = QVBoxLayout()
-        self.setLayout(self.mainLayout)
-
-        # score, record, restart button
-        hbox_layout = QHBoxLayout()
-        self.scoreLabel = QLabel(("SCORE: %s" % self.board.score))
-        self.scoreLabel.setStyleSheet("QLabel { color: rgb(0,0,255); font: 16pt; }")
-        self.scoreLabel.setFixedSize(180, 30)
-        hbox_layout.addWidget(self.scoreLabel, Qt.AlignLeft)
-
-        self.recordLabel = QLabel(("RECORD: %s" % self.record))
-        self.recordLabel.setStyleSheet("QLabel { color: rgb(0,0,255); font: 16pt; }")
-        self.recordLabel.setFixedSize(180, 30)
-        hbox_layout.addWidget(self.recordLabel, Qt.AlignLeft)
-
-        self.restartButton = QPushButton('Restart')
-        self.restartButton.setStyleSheet("QPushButton { background: rgb(204,192,179); \
-            font: 15pt; }")
-        self.restartButton.setFixedSize(100, 30)
-        self.restartButton.clicked.connect(self.start_game)
-
-        # 没有这一行代码, 方向键是用于设置button焦点, 导致方块无法移动
-        self.restartButton.setFocusPolicy(Qt.NoFocus)
-        hbox_layout.addWidget(self.restartButton, Qt.AlignLeft)
-
-        self.mainLayout.addLayout(hbox_layout)
-
-        # style sheet of the game board(游戏主面板的背景设置)
-        self.setStyleSheet("GameBoard { background: rgb(187,173,160) }")
-        # 绘制初始的4*4方块面板
-        self.init_draw_board()
-        self.board.add_rand_block()
-        self.board.add_rand_block()
-        self.display_board()
+        self.init_gui()
+        self.start_game()
 
     # Qblock对象只需要创建一次，后续更新时只用改变方格里的数字
     def init_draw_board(self):
@@ -71,9 +34,66 @@ class GameBoard(QWidget):
                 self.qBlockBoard[i][j] = Qblock(None)
                 board_layout.addWidget(self.qBlockBoard[i][j], i, j)
                 self.qBlockBoard[i][j].draw()
-        self.mainLayout.addLayout(board_layout)
+        self.main_layout.addLayout(board_layout)
 
-    # 按键事件处理
+    # 2019_1_30 add
+    def init_gui(self):
+        # set window size and overall layout
+        self.resize(600, 450)
+        self.main_layout = QVBoxLayout()
+        self.setLayout(self.main_layout)
+
+        # score, record, restart button
+        self.hbox_layout = QHBoxLayout()
+        self.scoreLabel = QLabel(("SCORE: %s" % self.board.score))
+        self.scoreLabel.setStyleSheet("QLabel { color: rgb(0,0,255); font: 16pt; }")
+        self.scoreLabel.setFixedSize(180, 30)
+        self.hbox_layout.addWidget(self.scoreLabel, Qt.AlignLeft)
+
+        self.recordLabel = QLabel(("RECORD: %s" % self.record))
+        self.recordLabel.setStyleSheet("QLabel { color: rgb(0,0,255); font: 16pt; }")
+        self.recordLabel.setFixedSize(180, 30)
+        self.hbox_layout.addWidget(self.recordLabel, Qt.AlignLeft)
+
+        self.restartButton = QPushButton('Restart')
+        self.restartButton.setStyleSheet("QPushButton { background: rgb(204,192,179); \
+                    font: 15pt; }")
+        self.restartButton.setFixedSize(100, 30)
+        self.restartButton.clicked.connect(self.start_game)
+
+        # 没有这一行代码, 方向键是用于设置button焦点, 导致方块无法移动
+        self.restartButton.setFocusPolicy(Qt.NoFocus)
+        self.hbox_layout.addWidget(self.restartButton, Qt.AlignLeft)
+        self.main_layout.addLayout(self.hbox_layout)
+
+        # background-color of the game board
+        self.setStyleSheet("GameBoard { background: rgb(187,173,160) }")
+        self.init_draw_board()
+
+    def display_board(self):
+        for i in range(self.board.get_dimension):
+            for j in range(self.board.get_dimension):
+                # 从board中取出当前矩阵中存放的数字
+                self.qBlockBoard[i][j].value = self.board.get_block(i, j)
+                self.qBlockBoard[i][j].draw()
+
+    # game_over: reserve current score, update the record
+    def game_over(self):
+        if self.record > self.board.score:
+            self.record = self.board.score
+            try:
+                with open("record.txt", "w") as fp:
+                    fp.write(str(self.record))
+            except IOError as err:
+                print(err)
+        reply = QMessageBox.question(self, "Game Over", "Game over, Restart?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+        if reply == QMessageBox.Yes:
+            self.start_game()
+        else:
+            self.close()
+
+    # 重写了Widget的keyPressEvent函数，用于响应用户按键输入
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Up:
             self.move_block(Direction.Up)
@@ -87,14 +107,6 @@ class GameBoard(QWidget):
         elif event.key() == Qt.Key_Down:
             self.move_block(Direction.Down)
             print("Key->Down")
-
-    # Display numbers on the board
-    def display_board(self):
-        for i in range(self.board.get_dimension):
-            for j in range(self.board.get_dimension):
-                # 从board中取出当前矩阵中存放的数字
-                self.qBlockBoard[i][j].value = self.board.get_block(i, j)
-                self.qBlockBoard[i][j].draw()
 
     # move blocks
     def move_block(self, direction):
@@ -119,25 +131,11 @@ class GameBoard(QWidget):
         self.scoreLabel.setText(("SCORE: %s" % self.board.score))
         self.display_board()
 
-    # game_over: reserve current score, update the record
-    def game_over(self):
-        if self.record > self.board.score:
-            self.record = self.board.score
-            try:
-                with open("record.txt", "w") as fp:
-                    fp.write(str(self.record))
-            except IOError as err:
-                print(err)
-        reply = QMessageBox.question(self, "Game Over", "Game over, Restart?",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
-        if reply == QMessageBox.Yes:
-            self.start_game()
-        else:
-            self.close()
-
     def start_game(self):
         self.board.board_reset()
         self.board.score = 0
+        self.scoreLabel.setText(("SCORE: %s" % self.board.score))
+        # read score.txt 2019_1_30
         try:
             with open("record.txt") as fp:
                 self.record = int(fp.read())

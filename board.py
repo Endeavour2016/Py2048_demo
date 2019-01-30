@@ -2,22 +2,19 @@
 # @Time    : 2018/12/31 13:40
 # @Author  : ZLM
 # @FileName: board.py
-# board类：用于描述由4*4个方块组成的方块面板
+# class board：包含数字矩阵成员和方块的移动方法
 
 from enum import Enum
 from random import randint
 import copy
 
-
-# 定义枚举变量
 class Direction(Enum):
     Up = 1
     Down = 2
     Left = 3
     Right = 4
 
-
-# dimension 表示方块面板的大小(dimension * dimension)
+# dimension 表示面板大小(dimension * dimension)
 class Board:
     def __init__(self, dimension):
         self._dimension = dimension
@@ -51,7 +48,6 @@ class Board:
     def move_num(self, direction):
         block_before_move = copy.deepcopy(self.blockMatrix)  # 移动前的数字矩阵
         if direction == Direction.Up:
-            # self.move_up()
             self.move_up()
         elif direction == Direction.Down:
             self.move_down()
@@ -147,6 +143,7 @@ class Board:
                                 self.no_block_in_row(row, col, k):
                             # 合并数字, 更新计分
                             self.blockMatrix[row][k] += self.blockMatrix[row][k]
+                            self._score += self.blockMatrix[row][k]
                             self.blockMatrix[row][col] = None
                         k -= 1
                     # end while
@@ -166,6 +163,7 @@ class Board:
                                 self.no_block_in_row(row, k, col):
                             # 合并数字, 更新计分
                             self.blockMatrix[row][k] += self.blockMatrix[row][k]
+                            self._score += self.blockMatrix[row][k]
                             self.blockMatrix[row][col] = None
                         k += 1
 
@@ -185,6 +183,7 @@ class Board:
                                 self.no_block_in_col(col, r, row):
                             # 合并数字, 更新计分
                             self.blockMatrix[r][col] += self.blockMatrix[row][col]
+                            self._score += self.blockMatrix[r][col]
                             self.blockMatrix[row][col] = None
                         r += 1
 
@@ -203,6 +202,7 @@ class Board:
                                 self.no_block_in_col(col, row, r):
                             # 合并数字, 更新计分
                             self.blockMatrix[r][col] += self.blockMatrix[row][col]
+                            self._score += self.blockMatrix[r][col]
                             self.blockMatrix[row][col] = None
                         r -= 1
 
