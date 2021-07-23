@@ -1,2 +1,2 @@
-# Py2048_ZLM
-A simple PyQt practice
+# Py2048_demo
+A simple PyQt demo.
